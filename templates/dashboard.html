@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DNS Sentinel Dashboard</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<h1>DNS Sentinel Dashboard</h1>
+
+<div class="cards">
+
+    <div class="card">
+        <h3>DNS Events</h3>
+        <p>{{ stats.events }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Alerts</h3>
+        <p>{{ stats.alerts }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Critical Alerts</h3>
+        <p>{{ stats.critical }}</p>
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+
+venv/
+
+logs/*.log
+
+exports/*.csv
+exports/*.json
+
+dns_sentinel.db
