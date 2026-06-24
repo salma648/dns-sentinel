@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Blocklist</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+<div class="layout">
+
+    <aside class="sidebar">
+        <div class="logo">
+            <h2>DNS Sentinel</h2>
+            <p>DNS Security Platform</p>
+        </div>
+
+        <ul>
+            <li><a href="/">Overview</a></li>
+            <li><a href="/events">DNS Events</a></li>
+            <li><a href="/alerts">Security Alerts</a></li>
+            <li><a href="/analytics">Analytics</a></li>
+            <li><a href="/blocklist">Blocklist</a></li>
+            <li><a href="/reports">Reports</a></li>
+            <li><a href="/settings">Settings</a></li>
+        </ul>
+    </aside>
+
+    <main class="content">
+        <div class="header">
+            <h1>Recommended Blocklist</h1>
+            <p>IPs exceeding the risk threshold</p>
+        </div>
+
+        <div class="section">
+            <table>
+                <tr>
+                    <th>IP Address</th>
+                    <th>Action</th>
+                </tr>
+
+                {% for ip in blocked_ips %}
+                <tr>
+                    <td>{{ ip }}</td>
+                    <td>
+                        <form action="/unblock/{{ ip }}" method="POST">
+                            <button class="btn-danger" type="submit">
+                                Unblock
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </main>
+
+</div>
+</body>
+</html>

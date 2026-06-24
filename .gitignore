@@ -1,11 +1,21 @@
+# Python
+venv/
 __pycache__/
 *.pyc
 
-venv/
-
-logs/*.log
-
-exports/*.csv
-exports/*.json
-
+# Database
+*.db
 dns_sentinel.db
+
+# Logs
+logs/
+*.log
+query.log
+powerdns.log
+
+# Generated files
+exports/
+powerdns_monitor.status
+
+# VS Code
+.vscode/

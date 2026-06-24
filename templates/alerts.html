@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Security Alerts</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="layout">
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            <h2>DNS Sentinel</h2>
+            <p>DNS Security Platform</p>
+        </div>
+
+        <ul>
+            <li><a href="/">Overview</a></li>
+            <li><a href="/events">DNS Events</a></li>
+            <li><a href="/alerts">Security Alerts</a></li>
+            <li><a href="/analytics">Analytics</a></li>
+            <li><a href="/blocklist">Blocklist</a></li>
+            <li><a href="/reports">Reports</a></li>
+            <li><a href="/settings">Settings</a></li>
+        </ul>
+
+    </aside>
+
+    <main class="content">
+
+        <div class="header">
+
+            <h1>Security Alerts</h1>
+
+            <p>
+                Detected DNS threats and security incidents
+            </p>
+
+        </div>
+
+        <!-- FILTERS -->
+
+        <div class="section">
+
+            <h2>Filters</h2>
+
+            <form method="GET"
+                  action="/alerts"
+                  class="filters">
+
+                <input type="text"
+                       name="search"
+                       placeholder="Search IP or Domain"
+                       value="{{ search or '' }}">
+
+                <select name="severity">
+
+                    <option value="">
+                        All Severities
+                    </option>
+
+                    {% for item in severities %}
+
+                    <option value="{{ item.severity }}"
+                            {% if selected_severity == item.severity %}
+                            selected
+                            {% endif %}>
+
+                        {{ item.severity }}
+
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+                <select name="alert_type">
+
+                    <option value="">
+                        All Alert Types
+                    </option>
+
+                    {% for item in alert_types %}
+
+                    <option value="{{ item.alert_type }}"
+                            {% if selected_alert_type == item.alert_type %}
+                            selected
+                            {% endif %}>
+
+                        {{ item.alert_type }}
+
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+                <button class="btn-primary"
+                        type="submit">
+
+                    Apply Filters
+
+                </button>
+
+                <a href="/alerts"
+                   class="btn-secondary">
+
+                    Reset
+
+                </a>
+
+            </form>
+
+        </div>
+
+        <!-- ALERTS TABLE -->
+
+        <div class="section">
+
+            <h2>Security Alerts</h2>
+
+            <table>
+
+                <tr>
+
+                    <th>ID</th>
+
+                    <th>Timestamp</th>
+
+                    <th>Source IP</th>
+
+                    <th>Domain</th>
+
+                    <th>RCODE</th>
+
+                    <th>Alert Type</th>
+
+                    <th>Severity</th>
+
+                    <th>Detection Time</th>
+
+                    <th>Action</th>
+
+                </tr>
+
+                {% for alert in alerts %}
+
+                <tr>
+
+                    <td>{{ alert.id }}</td>
+
+                    <td>{{ alert.timestamp }}</td>
+
+                    <td>{{ alert.source_ip }}</td>
+
+                    <td>{{ alert.domain }}</td>
+
+                    <td>{{ alert.rcode }}</td>
+
+                    <td>
+                        {{ alert.alert_type }}
+                    </td>
+
+                    <td>
+
+                        <span class="severity severity-{{ alert.severity }}">
+
+                            {{ alert.severity }}
+
+                        </span>
+
+                    </td>
+                    <td>{{ alert.detection_time_ms }} ms</td>
+
+                    <td>
+
+                        <a class="btn-secondary"
+                           href="/alert/{{ alert.id }}">
+
+                            View
+
+                        </a>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </table>
+
+        </div>
+
+    </main>
+
+</div>
+
+</body>
+
+</html>

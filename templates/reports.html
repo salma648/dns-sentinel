@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Reports</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="layout">
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            <h2>DNS Sentinel</h2>
+            <p>DNS Security Platform</p>
+        </div>
+
+        <ul>
+            <li><a href="/">Overview</a></li>
+            <li><a href="/events">DNS Events</a></li>
+            <li><a href="/alerts">Security Alerts</a></li>
+            <li><a href="/analytics">Analytics</a></li>
+            <li><a href="/blocklist">Blocklist</a></li>
+            <li><a href="/reports">Reports</a></li>
+            <li><a href="/settings">Settings</a></li>
+        </ul>
+
+    </aside>
+
+    <main class="content">
+
+        <div class="header">
+            <h1>Reports</h1>
+            <p>Generate and review SOC exports</p>
+        </div>
+
+        <div class="cards">
+
+            <div class="card">
+                <h3>DNS Events</h3>
+                <p>{{ stats.events }}</p>
+            </div>
+
+            <div class="card">
+                <h3>Total Alerts</h3>
+                <p>{{ stats.alerts }}</p>
+            </div>
+
+            <div class="card">
+                <h3>Critical Alerts</h3>
+                <p>{{ stats.critical }}</p>
+            </div>
+
+        </div>
+
+        <div class="section">
+
+            <h2>Generate Exports</h2>
+
+            <p>
+                Export alerts from SQLite into CSV and JSON files.
+            </p>
+
+            <form action="/generate-reports" method="POST">
+                <button class="btn-primary" type="submit">
+                    Generate CSV / JSON Reports
+                </button>
+            </form>
+            <form action="/generate-pdf-report" method="POST">
+                <button class="btn-warning" type="submit">
+                    Generate PDF Report
+                </button>
+            </form>
+        </div>
+        <div class="section">
+
+            <h2>Manual Import PowerDNS Logs</h2>
+
+            <p>
+                Optional fallback: import exported PowerDNS logs from powerdns.log if the live monitor is not running.
+            </p>
+
+            <form action="/import-powerdns-logs" method="POST">
+                <button class="btn-success" type="submit">
+                    Import PowerDNS Logs
+                </button>
+            </form>
+
+        </div>
+
+        <div class="section">
+
+            <h2>Export Files Status</h2>
+
+            <table>
+                <tr>
+                    <th>Report</th>
+                    <th>Status</th>
+                    <th>Path</th>
+                </tr>
+
+                <tr>
+                    <td>CSV Alerts Export</td>
+
+                    <td>
+                        {% if reports_status.csv_exists %}
+                            Available
+                        {% else %}
+                            Not generated
+                        {% endif %}
+                    </td>
+
+                    <td>{{ reports_status.csv_path }}</td>
+                </tr>
+
+                <tr>
+                    <td>JSON Alerts Export</td>
+
+                    <td>
+                        {% if reports_status.json_exists %}
+                            Available
+                        {% else %}
+                            Not generated
+                        {% endif %}
+                    </td>
+
+                    <td>{{ reports_status.json_path }}</td>
+                </tr>
+                <tr>
+                    <td>PDF SOC Report</td>
+
+                    <td>
+                        {% if reports_status.pdf_exists %}
+                            Available
+                        {% else %}
+                            Not generated
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if reports_status.pdf_exists %}
+
+                            <a href="/download-pdf"
+                                class="btn-success">
+
+                                Download PDF
+                            </a>
+                            {% else %}
+                                {{ reports_status.pdf_path }}
+                            {% endif %}
+                    </td>
+                </tr>
+            </table>
+
+        </div>
+
+        <div class="section">
+
+            <h2>Notes</h2>
+
+            <p>
+                SQLite remains the main data source.
+                CSV and JSON files are generated for reporting,
+                sharing and external analysis.
+            </p>
+
+        </div>
+
+    </main>
+
+</div>
+
+</body>
+
+</html>

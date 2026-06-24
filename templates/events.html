@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>DNS Events</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="layout">
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            <h2>DNS Sentinel</h2>
+            <p>DNS Security Platform</p>
+        </div>
+
+        <ul>
+            <li><a href="/">Overview</a></li>
+            <li><a href="/events">DNS Events</a></li>
+            <li><a href="/alerts">Security Alerts</a></li>
+            <li><a href="/analytics">Analytics</a></li>
+            <li><a href="/blocklist">Blocklist</a></li>
+            <li><a href="/reports">Reports</a></li>
+            <li><a href="/settings">Settings</a></li>
+        </ul>
+
+    </aside>
+
+    <main class="content">
+
+        <div class="header">
+            <h1>DNS Events</h1>
+            <p>Collected DNS activity from simulator and BIND logs</p>
+        </div>
+
+        <div class="section">
+
+            <table>
+
+                <tr>
+                    <th>ID</th>
+                    <th>Timestamp</th>
+                    <th>Source IP</th>
+                    <th>Domain</th>
+                    <th>RCODE</th>
+                    <th>Source</th>
+                </tr>
+
+                {% for event in dns_events %}
+
+                <tr>
+                    <td>{{ event.id }}</td>
+                    <td>{{ event.timestamp }}</td>
+                    <td>{{ event.source_ip }}</td>
+                    <td>{{ event.domain }}</td>
+                    <td>{{ event.rcode }}</td>
+
+                    <td>
+                        <span class="source-badge source-{{ event.source_type|lower }}">
+                            {{ event.source_type }}
+                        </span>
+                    </td>
+                </tr>
+
+                {% endfor %}
+
+            </table>
+
+        </div>
+
+    </main>
+
+</div>
+
+</body>
+
+</html>

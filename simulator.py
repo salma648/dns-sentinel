@@ -132,3 +132,21 @@ def generate_dns_event():
         domain, rcode = generate_normal_domain()
 
     return source_ip, domain, rcode
+
+def send_dns_query(domain):
+    import subprocess
+
+    try:
+        subprocess.Popen(
+            [
+                "ssh",
+                "-o", "BatchMode=yes",
+                "-o", "ConnectTimeout=2",
+                "kali@192.168.174.129",
+                f"dig {domain} @127.0.0.1"
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+    except Exception as e:
+        print("DNS query error:", e)

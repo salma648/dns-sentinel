@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Alert Details</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="layout">
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            <h2>DNS Sentinel</h2>
+            <p>DNS Security Platform</p>
+        </div>
+
+        <ul>
+            <li><a href="/">Overview</a></li>
+            <li><a href="/events">DNS Events</a></li>
+            <li><a href="/alerts">Security Alerts</a></li>
+            <li><a href="/analytics">Analytics</a></li>
+            <li><a href="/blocklist">Blocklist</a></li>
+            <li><a href="/reports">Reports</a></li>
+            <li><a href="/settings">Settings</a></li>
+        </ul>
+
+    </aside>
+
+    <main class="content">
+
+        <div class="header">
+            <h1>Alert Details</h1>
+            <p>Detailed DNS security alert analysis</p>
+        </div>
+
+        <!-- ALERT DETAILS -->
+
+        <div class="section">
+
+            <table>
+
+                <tr>
+                    <th>Field</th>
+                    <th>Value</th>
+                </tr>
+
+                <tr>
+                    <td>ID</td>
+                    <td>{{ alert.id }}</td>
+                </tr>
+
+                <tr>
+                    <td>Timestamp</td>
+                    <td>{{ alert.timestamp }}</td>
+                </tr>
+
+                <tr>
+                    <td>Source IP</td>
+                    <td>{{ alert.source_ip }}</td>
+                </tr>
+
+                <tr>
+                    <td>Domain</td>
+                    <td>{{ alert.domain }}</td>
+                </tr>
+
+                <tr>
+                    <td>RCODE</td>
+                    <td>{{ alert.rcode }}</td>
+                </tr>
+
+                <tr>
+                    <td>Entropy</td>
+                    <td>{{ alert.entropy }}</td>
+                </tr>
+
+                <tr>
+                    <td>Alert Type</td>
+                    <td>{{ alert.alert_type }}</td>
+                </tr>
+                <tr>
+                    <td>Detection Time</td>
+                    <td>{{ alert.detection_time_ms }} ms</td>
+                </tr>
+                <tr>
+                    <td>Severity</td>
+                    <td>
+                        <span class="severity severity-{{ alert.severity }}">
+                            {{ alert.severity }}
+                        </span>
+                    </td>
+                </tr>
+
+            </table>
+
+        </div>
+
+        <!-- ALERT EXPLANATION -->
+
+        <div class="section">
+
+            <h2>Alert Explanation</h2>
+
+            <table>
+
+                <tr>
+                    <th>Category</th>
+                    <th>Description</th>
+                </tr>
+
+                <tr>
+                    <td>Meaning</td>
+                    <td>{{ explanation.meaning }}</td>
+                </tr>
+
+                <tr>
+                    <td>Why was it triggered?</td>
+                    <td>{{ explanation.reason }}</td>
+                </tr>
+
+                <tr>
+                    <td>Recommended Action</td>
+                    <td>{{ explanation.action }}</td>
+                </tr>
+
+            </table>
+
+        </div>
+
+        <!-- NAVIGATION -->
+
+        <div class="section">
+
+            <a href="/alerts" class="btn-primary">
+                Back to Alerts
+            </a>
+
+        </div>
+
+    </main>
+
+</div>
+
+</body>
+
+</html>

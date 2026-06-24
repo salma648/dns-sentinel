@@ -1,33 +1,339 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="3">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>DNS Sentinel Dashboard</title>
+
     <link rel="stylesheet"
           href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
 
-<h1>DNS Sentinel Dashboard</h1>
+<div class="layout">
 
-<div class="cards">
+    <!-- SIDEBAR -->
 
-    <div class="card">
-        <h3>DNS Events</h3>
-        <p>{{ stats.events }}</p>
-    </div>
+    <aside class="sidebar">
 
-    <div class="card">
-        <h3>Alerts</h3>
-        <p>{{ stats.alerts }}</p>
-    </div>
+        <div class="logo">
+            <h2>DNS Sentinel</h2>
+            <p>DNS Security Platform</p>
+        </div>
 
-    <div class="card">
-        <h3>Critical Alerts</h3>
-        <p>{{ stats.critical }}</p>
-    </div>
+        <nav>
+
+            <ul>
+
+                <li><a href="/">Overview</a></li>
+
+                <li><a href="/events">DNS Events</a></li>
+
+                <li><a href="/alerts">Security Alerts</a></li>
+
+                <li><a href="/analytics">Analytics</a></li>
+
+                <li><a href="/blocklist">Blocklist</a></li>
+
+                <li><a href="/reports">Reports</a></li>
+
+                <li><a href="/settings">Settings</a></li>
+
+            </ul>
+
+        </nav>
+
+    </aside>
+
+    <!-- MAIN CONTENT -->
+
+    <main class="content">
+
+        <div class="header">
+
+            <h1>DNS Sentinel Dashboard</h1>
+
+            <p>
+                DNS Threat Monitoring & Detection Platform
+            </p>
+
+            <div class="actions">
+
+                <form action="/generate-traffic" method="POST">
+
+                    <button class="btn-primary" type="submit">
+                        Generate DNS Traffic
+                    </button>
+
+                </form>
+
+                <form action="/start-simulation" method="POST">
+
+                    <button class="btn-success" type="submit">
+                        Start Simulation
+                    </button>
+
+                </form>
+
+                <form action="/stop-simulation" method="POST">
+
+                    <button class="btn-danger" type="submit">
+                        Stop Simulation
+                    </button>
+
+                </form>
+
+                <form action="/reset-demo" method="POST">
+
+                    <button class="btn-warning" type="submit">
+                        Reset Demo Data
+                    </button>
+
+                </form>
+            </div>
+
+            <p class="status">
+
+                Simulation Status :
+
+                {% if stats.simulation_running %}
+
+                    <span class="running">
+                        Running
+                    </span>
+
+                {% else %}
+
+                    <span class="stopped">
+                        Stopped
+                    </span>
+
+                {% endif %}
+
+            </p>
+
+        </div>
+
+        <!-- KPI CARDS -->
+
+        <div class="cards">
+
+            <div class="card">
+
+                <h3>DNS Events</h3>
+
+                <p>{{ stats.events }}</p>
+
+            </div>
+
+            <div class="card">
+
+                <h3>Alerts</h3>
+
+                <p>{{ stats.alerts }}</p>
+
+            </div>
+
+            <div class="card">
+
+                <h3>Critical Alerts</h3>
+
+                <p>{{ stats.critical }}</p>
+
+            </div>
+            <div class="card">
+                <h3>Success Rate</h3>
+                <p>{{ stats.success_rate }}%</p>
+            </div>
+
+            <div class="card">
+                <h3>Water Torture</h3>
+                <p>{{ stats.water_torture_count }}</p>
+            </div>
+
+            <div class="card">
+                <h3>Blocked IPs</h3>
+                <p>{{ stats.blocked_ips }}</p>
+            </div>
+
+            <div class="card">
+                <h3>Alert Rate</h3>
+                <p>{{ stats.alert_rate }}%</p>
+            </div>
+
+            <div class="card">
+                <h3>Avg Detection Time</h3>
+                <p>{{ detection_stats.avg_time }} ms</p>
+            </div>
+
+            
+       
+        </div>
+
+        <div class="section">
+
+            <h2>System Health</h2>
+
+            <table>
+
+                <tr>
+                    <th>Component</th>
+                    <th>Status</th>
+                </tr>
+
+                <tr>
+                    <td>Database</td>
+                    <td>{{ health.database_status }}</td>
+                </tr>
+
+                <tr>
+                    <td>Simulation Engine</td>
+                    <td>{{ health.simulation_status }}</td>
+                </tr>
+
+                <tr>
+                    <td>PowerDNS Monitor</td>
+                    <td>{{ health.powerdns_monitor }}</td>
+                </tr>
+
+                <tr>
+                    <td>Blocked IPs</td>
+                    <td>{{ health.blocked_ips }}</td>
+                </tr>
+
+            </table>
+        </div>  
+        <div class="section">
+
+            <h2>Threat Intelligence</h2>
+
+            <table>
+
+                <tr>
+                    <th>Metric</th>
+                    <th>Value</th>
+                </tr>
+
+                <tr>
+                    <td>Top Attack Type</td>
+                    <td>{{ intel.top_attack }}</td>
+                </tr>
+
+                <tr>
+                    <td>Most Targeted Domain</td>
+                    <td>{{ intel.top_domain }}</td>
+                </tr>
+
+                 <tr>
+                    <td>Traffic Source</td>
+                    <td>{{ intel.traffic_source }}</td>
+                </tr>
+
+             </table> 
+        </div>
+
+        <div class="section">
+
+            <h2>Recent Activity</h2>
+
+            <div class="timeline">
+
+                {% for event in recent_activity %}
+
+                <div class="timeline-item">
+
+                    <div class="timeline-dot severity-dot-{{ event.severity }}"></div>
+
+                    <div class="timeline-content">
+
+                        <div class="timeline-header">
+                            <strong>{{ event.alert_type }}</strong>
+                            <span class="severity severity-{{ event.severity }}">
+                                {{ event.severity }}
+                            </span>
+                        </div>
+
+                        <p>
+                            Source IP: {{ event.source_ip }}
+                        </p>
+
+                        <small>
+                            {{ event.timestamp }}
+                        </small>
+
+                    </div>
+
+                </div>
+
+                {% endfor %}
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Top Targeted Domains</h2>
+
+            <table>
+                <tr>
+                    <th>Domain</th>
+                    <th>Alerts</th>
+                </tr>
+
+                {% for domain, count in intel.top_domains %}
+                <tr>
+                    <td>{{ domain }}</td>
+                    <td>{{ count }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2">No targeted domains found</td>
+                </tr>
+                {% endfor %}
+            </table>
+
+        </div>
+
+
+
+        <!-- ALERTS BY TYPE -->
+
+        <div class="section">
+
+            <h2>Alerts by Type</h2>
+
+            <table>
+
+                <tr>
+                    <th>Alert Type</th>
+                    <th>Count</th>
+                </tr>
+
+
+                {% for alert_type, count in stats.alert_types %}
+
+                <tr>
+
+                    <td>{{ alert_type }}</td>
+
+                    <td>{{ count }}</td>
+
+                </tr>
+
+                {% endfor %}
+
+            </table>
+
+        </div>
+        <div class="section">
+
+
+    </main>
 
 </div>
-
 </body>
+
 </html>

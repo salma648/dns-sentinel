@@ -27,14 +27,17 @@ logging.basicConfig(
 
 nxdomain_history = defaultdict(list)
 subdomain_history = defaultdict(list)
+water_torture_alert_history = defaultdict(float)
 
 
 def calculate_entropy(domain):
     counts = Counter(domain)
     length = len(domain)
 
-    probabilities = [count / length for count in counts.values()]
+    if length == 0:
+        return 0
 
+    probabilities = [count / length for count in counts.values()]
     return -sum(p * math.log2(p) for p in probabilities)
 
 
@@ -72,6 +75,9 @@ def is_dga_like(domain):
         return True
 
     if vowel_ratio < 0.10:
+        return True
+
+    if len(first_part) > 15 and vowel_ratio < 0.25:
         return True
 
     return False
@@ -131,14 +137,22 @@ def detect_water_torture(source_ip, domain, current_time):
 
     entropy_ratio = len(high_entropy_events) / len(events)
 
-    if (
+    conditions_met = (
         len(unique_subdomains) >= WATER_TORTURE_THRESHOLD
         and len(unique_ips) >= WATER_TORTURE_IP_THRESHOLD
         and entropy_ratio >= WATER_TORTURE_ENTROPY_RATIO
-    ):
-        return True
+    )
 
-    return False
+    if not conditions_met:
+        return False
+
+    last_alert_time = water_torture_alert_history[root_domain]
+
+    if current_time - last_alert_time < WATER_TORTURE_WINDOW:
+        return False
+
+    water_torture_alert_history[root_domain] = current_time
+    return True
 
 
 def get_water_torture_context(domain):
@@ -158,7 +172,7 @@ def get_water_torture_context(domain):
     high_entropy_events = [
         event
         for event in events
-        if event["entropy"] >= ENTROPY_THRESHOLD
+        if event["entropy"] >= WATER_TORTURE_SUBDOMAIN_ENTROPY_THRESHOLD
     ]
 
     entropy_ratio = 0
@@ -210,6 +224,16 @@ def log_detection(alert_type, severity, source_ip, domain, rcode, entropy):
 def detect(source_ip, domain, rcode, entropy):
     current_time = time.time()
 
+    if is_dns_tunneling(domain, entropy):
+        alert_type, severity = "DNS_TUNNELING_SUSPECT", "critical"
+        log_detection(alert_type, severity, source_ip, domain, rcode, entropy)
+        return alert_type, severity
+
+    if detect_water_torture(source_ip, domain, current_time):
+        alert_type, severity = "WATER_TORTURE", "critical"
+        log_detection(alert_type, severity, source_ip, domain, rcode, entropy)
+        return alert_type, severity
+
     if rcode == "NXDOMAIN":
         nxdomain_history[source_ip].append(current_time)
 
@@ -219,18 +243,8 @@ def detect(source_ip, domain, rcode, entropy):
             if current_time - timestamp <= NXDOMAIN_BURST_WINDOW
         ]
 
-        if is_dns_tunneling(domain, entropy):
-            alert_type, severity = "DNS_TUNNELING_SUSPECT", "critical"
-            log_detection(alert_type, severity, source_ip, domain, rcode, entropy)
-            return alert_type, severity
-
-        if detect_water_torture(source_ip, domain, current_time):
-            alert_type, severity = "WATER_TORTURE", "critical"
-            log_detection(alert_type, severity, source_ip, domain, rcode, entropy)
-            return alert_type, severity
-
         if len(nxdomain_history[source_ip]) >= NXDOMAIN_BURST_THRESHOLD:
-            alert_type, severity = "NXDOMAIN_BURST", "critical"
+            alert_type, severity = "NXDOMAIN_BURST", "high"
             log_detection(alert_type, severity, source_ip, domain, rcode, entropy)
             return alert_type, severity
 
@@ -239,28 +253,5 @@ def detect(source_ip, domain, rcode, entropy):
             log_detection(alert_type, severity, source_ip, domain, rcode, entropy)
             return alert_type, severity
 
-        if entropy >= ENTROPY_THRESHOLD:
-            alert_type, severity = "HIGH_ENTROPY_DOMAIN", "high"
-            log_detection(alert_type, severity, source_ip, domain, rcode, entropy)
-            return alert_type, severity
-
-        alert_type, severity = "NXDOMAIN_DETECTED", "medium"
-        log_detection(alert_type, severity, source_ip, domain, rcode, entropy)
-        return alert_type, severity
-
-    if is_dns_tunneling(domain, entropy):
-        alert_type, severity = "DNS_TUNNELING_SUSPECT", "critical"
-        log_detection(alert_type, severity, source_ip, domain, rcode, entropy)
-        return alert_type, severity
-
-    if is_dga_like(domain):
-        alert_type, severity = "DGA_SUSPECT", "high"
-        log_detection(alert_type, severity, source_ip, domain, rcode, entropy)
-        return alert_type, severity
-
-    if entropy >= ENTROPY_THRESHOLD:
-        alert_type, severity = "HIGH_ENTROPY_DOMAIN", "high"
-        log_detection(alert_type, severity, source_ip, domain, rcode, entropy)
-        return alert_type, severity
 
     return None, None

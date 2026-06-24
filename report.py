@@ -1,5 +1,12 @@
 import sqlite3
-from config import DB_PATH, AUTO_BLOCK_SCORE_THRESHOLD, BLOCKLIST_FILE
+
+from config import DB_PATH
+
+from blocker import (
+    severity_score,
+    calculate_ip_scores,
+    generate_blocklist
+)
 
 
 def fetch_one(cursor, query):
@@ -27,28 +34,6 @@ def get_root_domain(domain):
 
     return domain
 
-
-def severity_score(severity):
-    scores = {
-        "critical": 10,
-        "high": 5,
-        "medium": 2
-    }
-
-    return scores.get(severity, 0)
-
-def generate_blocklist(ip_scores):
-    blocked_ips = [
-        ip
-        for ip, score in ip_scores.items()
-        if score >= AUTO_BLOCK_SCORE_THRESHOLD
-    ]
-
-    with open(BLOCKLIST_FILE, "w") as file:
-        for ip in blocked_ips:
-            file.write(ip + "\n")
-
-    return blocked_ips
 
 def show_report():
     conn = sqlite3.connect(DB_PATH)
@@ -85,19 +70,6 @@ def show_report():
 
     for severity, count in cursor.fetchall():
         print(f"{severity:10} {count}")
-        
-    print_section("TOP ATTACK TYPES")
-
-    cursor.execute("""
-        SELECT alert_type, COUNT(*) as count
-        FROM alerts
-        GROUP BY alert_type
-        ORDER BY count DESC
-        LIMIT 5
-    """)
-
-    for alert_type, count in cursor.fetchall():
-        print(f"{alert_type:30} {count}")   
 
     print_section("TOP SUSPICIOUS IPS")
 
@@ -123,7 +95,6 @@ def show_report():
 
     for (domain,) in cursor.fetchall():
         root = get_root_domain(domain)
-
         domains[root] = domains.get(root, 0) + 1
 
     for root, count in sorted(
@@ -150,22 +121,10 @@ def show_report():
     else:
         for timestamp, source_ip, domain, alert_type, severity in rows:
             print(f"{timestamp} | {source_ip} | {alert_type} | {domain}")
+
     print_section("SOC RISK SCORE BY IP")
 
-    cursor.execute("""
-        SELECT source_ip, severity
-        FROM alerts
-    """)
-
-    ip_scores = {}
-
-    for source_ip, severity in cursor.fetchall():
-        score = severity_score(severity)
-
-        ip_scores[source_ip] = (
-            ip_scores.get(source_ip, 0)
-            + score
-        )
+    ip_scores = calculate_ip_scores()
 
     for ip, score in sorted(
         ip_scores.items(),
@@ -174,9 +133,9 @@ def show_report():
     )[:10]:
         print(f"{ip:20} {score}")
 
-    blocked_ips = generate_blocklist(ip_scores)
-
     print_section("RECOMMENDED IP BLOCKLIST")
+
+    blocked_ips = generate_blocklist()
 
     if not blocked_ips:
         print("No IP reached the blocking threshold.")
