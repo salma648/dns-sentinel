@@ -61,6 +61,38 @@ def init_db():
             ALTER TABLE alerts
             ADD COLUMN detection_time_ms REAL DEFAULT 0
         """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            alert_type TEXT,
+            severity TEXT,
+            source_ip TEXT,
+            domain TEXT,
+            channel TEXT,
+            status TEXT,
+            message TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS app_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    """)
+    cursor.execute("""
+        INSERT OR IGNORE INTO app_settings (key, value)
+        VALUES ('admin_username', 'admin')
+    """)
+
+    cursor.execute("""
+        INSERT OR IGNORE INTO app_settings (key, value)
+        VALUES ('admin_password', 'admin123')
+    """)
+    cursor.execute("""
+        INSERT OR IGNORE INTO app_settings (key, value)
+        VALUES ('alert_email', '')
+    """)
 
     conn.commit()
     conn.close()

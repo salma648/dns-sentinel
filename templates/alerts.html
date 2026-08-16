@@ -28,6 +28,12 @@
             <li><a href="/blocklist">Blocklist</a></li>
             <li><a href="/reports">Reports</a></li>
             <li><a href="/settings">Settings</a></li>
+
+            <li>
+                <a href="{{ url_for('logout') }}" class="logout-link">
+                    Logout
+                </a>
+            </li>
         </ul>
 
     </aside>
@@ -184,8 +190,15 @@
                            href="/alert/{{ alert.id }}">
 
                             View
-
                         </a>
+
+                        <form method="POST"
+                                action="{{ url_for('block', ip=alert.source_ip) }}"
+                                style="display:inline;">
+                                <button class="btn-danger" type="submit">
+                                    Block
+                                </button>
+                            </form>
 
                     </td>
 

@@ -28,6 +28,12 @@
             <li><a href="/blocklist">Blocklist</a></li>
             <li><a href="/reports">Reports</a></li>
             <li><a href="/settings">Settings</a></li>
+
+            <li>
+                <a href="{{ url_for('logout') }}" class="logout-link">
+                    Logout
+                </a>
+            </li>
         </ul>
 
     </aside>
@@ -58,6 +64,69 @@
             </table>
 
         </div>
+        <div class="section">
+
+            <h2>Email Notifications</h2>
+
+            <form method="POST" action="{{ url_for('settings') }}">
+
+                <label>Alert Receiver Email</label>
+
+                <input
+                    type="email"
+                    name="alert_email"
+                    value="{{ settings.ALERT_EMAIL }}"
+                    placeholder="admin@example.com"
+                    required>
+
+                <br><br>
+
+                <button class="btn-primary" type="submit">
+                    Save Email
+                </button>
+
+            </form>
+
+        </div>
+        <div class="section">
+
+            <h2>Admin Access</h2>
+
+            <form method="POST" action="{{ url_for('settings') }}">
+
+                <label>Admin Username</label>
+                <input type="text"
+                    name="admin_username"
+                    value="{{ settings.ADMIN_USERNAME }}"
+                    required>
+
+                <br><br>
+
+                <label>New Admin Password</label>
+                <input type="password"
+                    name="admin_password"
+                    placeholder="Leave empty to keep current password">
+
+                <br><br>
+
+                <label>Alert Receiver Email</label>
+                <input type="email"
+                    name="alert_email"
+                    value="{{ settings.ALERT_EMAIL }}"
+                    placeholder="admin@example.com"
+                    required>
+
+                <br><br>
+
+                <button class="btn-primary" type="submit">
+                    Save Admin Settings
+                </button>
+
+            </form>
+
+        </div>
+
+
 
         <div class="section">
 

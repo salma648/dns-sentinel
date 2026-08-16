@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, request, send_file
+from flask import Flask, render_template, redirect, url_for, request, send_file, session
 import sqlite3
 import threading
 import time
@@ -7,20 +7,25 @@ import config
 import threading
 
 from config import DB_PATH
-from engine import generate_traffic, process_dns_event
+from engine import  process_dns_event
 from exports import main as run_exports
-from blocker import unblock_ip 
+from blocklist_manager import unblock_ip, get_blocked_ips, block_ip, sync_blocklist, sync_empty_blocklist 
 from pdf_report import generate_pdf_report
 from detector import get_root_domain 
 from powerdns_import import import_powerdns_log
-from powerdns_stats import get_powerdns_stats
-from powerdns_live_monitor import start_powerdns_monitor
+from powerdns_live_monitor import start_powerdns_monitor, handle_blocking_alert 
+from docker_controller import start_dns_clients, stop_dns_clients, check_kali_connection, start_powerdns
 
 app = Flask(__name__)
 
 simulation_running = False
 simulation_thread = None
 simulation_lock = threading.Lock()
+KALI_AVAILABLE = False
+traffic_running = False
+traffic_lock = threading.Lock()
+
+app.secret_key = "dns-sentinel-secret-key"
 
 
 def get_db_connection():
@@ -54,17 +59,12 @@ def get_stats():
     WHERE alert_type = 'WATER_TORTURE'
     """).fetchone()[0]
 
-    blocked_ips = 0
-
-    try:
-        with open(config.BLOCKLIST_FILE, "r") as f:
-            blocked_ips = len([
-                line.strip()
-                for line in f
-                if line.strip()
-            ])
-    except:
-        pass
+    notification_count = conn.execute("""
+        SELECT COUNT(*)
+        FROM notifications
+        WHERE alert_type = 'WATER_TORTURE'
+    """).fetchone()[0]
+    blocked_ips = len(get_blocked_ips())
 
     noerror_events = conn.execute("""
         SELECT COUNT(*)
@@ -119,9 +119,10 @@ def get_stats():
         "simulator_events": simulator_events,
         "alert_types": alert_types,
         "top_ips": top_ips,
-        "simulation_running": simulation_running,
+        "simulation_running": traffic_running,
         "water_torture_count": water_torture_count,
-        "blocked_ips": blocked_ips
+        "blocked_ips": blocked_ips,
+        "notification_count": notification_count
     }
 
 
@@ -245,17 +246,6 @@ def get_top_domains():
     return results
 
 
-def get_blocked_ips():
-    try:
-        with open(config.BLOCKLIST_FILE, "r") as file:
-            return [
-                line.strip()
-                for line in file
-                if line.strip()
-            ]
-    except FileNotFoundError:
-        return []
-
 
 def get_reports_status():
     csv_path = "exports/alerts.csv"
@@ -290,13 +280,24 @@ def get_settings():
 
 
 def reset_demo_data():
+    """
+    Vide toutes les tables ET remet la blocklist Kali à vide.
+    SQLite est vidé en premier, puis Kali est synchronisé.
+    """
     conn = get_db_connection()
-
     conn.execute("DELETE FROM dns_events")
     conn.execute("DELETE FROM alerts")
-
+    conn.execute("DELETE FROM notifications")
+    conn.execute("DELETE FROM blocked_ips")
     conn.commit()
     conn.close()
+
+    # Corrigé : sync explicite avec contenu vide
+    try:
+        sync_empty_blocklist()
+        print("[reset] Kali blocklist cleared")
+    except Exception as e:
+        print(f"[reset] Failed to clear Kali blocklist: {e}")
 
 
 def simulation_loop():
@@ -524,6 +525,99 @@ def get_powerdns_monitor_status():
         return "RUNNING"
 
     return "STOPPED"
+
+def get_recent_notifications():
+    conn = get_db_connection()
+
+    notifications = conn.execute("""
+        SELECT timestamp, alert_type, severity, source_ip, domain, channel, status
+        FROM notifications
+        ORDER BY timestamp DESC
+        LIMIT 5
+    """).fetchall()
+
+    conn.close()
+
+    return notifications
+
+def docker_traffic_burst():
+    global traffic_running
+
+    with traffic_lock:
+        if traffic_running:
+            print("Traffic generation already running.")
+            return
+        traffic_running = True
+
+    try:
+        result = start_dns_clients(scale=5)
+        print(result.stdout)
+        print(result.stderr)
+
+        print("Traffic generation started.")
+
+    except Exception as e:
+        print(f"Start traffic error: {e}")
+
+        with traffic_lock:
+            traffic_running = False
+
+def get_setting(key, default=""):
+    conn = get_db_connection()
+    row = conn.execute(
+        "SELECT value FROM app_settings WHERE key = ?",
+        (key,)
+    ).fetchone()
+    conn.close()
+    return row["value"] if row else default
+
+
+def set_setting(key, value):
+    conn = get_db_connection()
+    conn.execute("""
+        INSERT INTO app_settings (key, value)
+        VALUES (?, ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    """, (key, value))
+    conn.commit()
+    conn.close()
+
+@app.before_request
+def require_login():
+    public_routes = ["login", "static"]
+
+    if request.endpoint in public_routes:
+        return
+
+    if not session.get("admin_logged_in"):
+        return redirect(url_for("login"))
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        db_username = get_setting("admin_username", "admin")
+        db_password = get_setting("admin_password", "admin123")
+
+        if username == db_username and password == db_password:
+            session["admin_logged_in"] = True
+            return redirect(url_for("dashboard"))
+
+        error = "Invalid credentials"
+
+    return render_template("login.html", error=error)
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
 @app.route("/")
 def dashboard():
 
@@ -533,6 +627,7 @@ def dashboard():
     recent_activity = get_recent_activity()
     response_stats = get_response_time_stats()
     detection_stats = get_detection_time_stats()
+    notifications = get_recent_notifications()
 
     return render_template(
         "dashboard.html",
@@ -541,7 +636,9 @@ def dashboard():
         intel=intel,
         recent_activity=recent_activity,
         response_stats=response_stats,
-        detection_stats=detection_stats
+        detection_stats=detection_stats,
+        notifications=notifications,
+        kali_available=KALI_AVAILABLE
     )
 
 @app.route("/events")
@@ -617,9 +714,26 @@ def reports():
     )
 
 
-@app.route("/settings")
+@app.route("/settings", methods=["GET", "POST"])
 def settings():
+    if request.method == "POST":
+        alert_email = request.form.get("alert_email", "").strip()
+        admin_username = request.form.get("admin_username", "").strip()
+        admin_password = request.form.get("admin_password", "").strip()
+
+        set_setting("alert_email", alert_email)
+
+        if admin_username:
+            set_setting("admin_username", admin_username)
+
+        if admin_password:
+            set_setting("admin_password", admin_password)
+
+        return redirect(url_for("settings"))
+
     settings_data = get_settings()
+    settings_data["ALERT_EMAIL"] = get_setting("alert_email")
+    settings_data["ADMIN_USERNAME"] = get_setting("admin_username", "admin")
 
     return render_template(
         "settings.html",
@@ -627,46 +741,11 @@ def settings():
     )
 
 
-@app.route("/generate-traffic", methods=["POST"])
-def generate_dns_traffic():
-    generate_traffic(batch_size=10)
-    return redirect(url_for("dashboard"))
-
-
 @app.route("/generate-reports", methods=["POST"])
 def generate_reports():
     os.makedirs("exports", exist_ok=True)
     run_exports()
     return redirect(url_for("reports"))
-
-
-@app.route("/start-simulation", methods=["POST"])
-def start_simulation():
-    global simulation_running, simulation_thread
-
-    with simulation_lock:
-        if not simulation_running:
-            simulation_running = True
-
-            simulation_thread = threading.Thread(
-                target=simulation_loop,
-                daemon=True
-            )
-
-            simulation_thread.start()
-
-    return redirect(url_for("dashboard"))
-
-
-@app.route("/stop-simulation", methods=["POST"])
-def stop_simulation():
-    global simulation_running
-
-    with simulation_lock:
-        simulation_running = False
-
-    return redirect(url_for("dashboard"))
-
 
 @app.route("/reset-demo", methods=["POST"])
 def reset_demo():
@@ -692,12 +771,24 @@ def alert_detail(alert_id):
         alert=alert,
         explanation=explanation
     )
+@app.route("/block/<ip>", methods=["POST"])
+def block(ip):
+    handle_blocking_alert(
+        "MANUAL_BLOCK",
+        "critical",
+        ip,
+        "Manual block from dashboard",
+        reason="Blocked manually by analyst from dashboard"
+    )
+    return redirect(url_for("blocklist"))
+
 
 @app.route("/unblock/<ip>", methods=["POST"])
 def unblock(ip):
-
-    unblock_ip(ip)
-
+    print(f"[route] UNBLOCK IP = {ip}")
+    result = unblock_ip(ip)   # sync inclus dans unblock_ip
+    if result is None or getattr(result, "returncode", 1) != 0:
+        print(f"[route] Unblock sync may have failed for {ip}")
     return redirect(url_for("blocklist"))
 
 @app.route("/generate-pdf-report", methods=["POST"])
@@ -723,14 +814,60 @@ def import_powerdns_logs():
     import_powerdns_log("powerdns.log")
     return redirect(url_for("reports"))
 
-if __name__ == "__main__":
+@app.route("/generate-traffic", methods=["POST"])
+def generate_dns_traffic():
 
-    monitor_thread = threading.Thread(
-        target=start_powerdns_monitor,
+    traffic_thread = threading.Thread(
+        target=docker_traffic_burst,
         daemon=True
     )
 
-    monitor_thread.start()
+    traffic_thread.start()
+
+    return redirect(url_for("dashboard"))
+
+@app.route("/stop-traffic", methods=["POST"])
+def stop_dns_traffic():
+    global traffic_running
+
+    try:
+        result = stop_dns_clients()
+        print(result.stdout)
+        print(result.stderr)
+        print("Traffic generation stopped.")
+
+    except Exception as e:
+        print(f"Stop traffic error: {e}")
+
+    with traffic_lock:
+        traffic_running = False
+
+    return redirect(url_for("dashboard"))
+
+if __name__ == "__main__":
+
+    print("Checking Kali connection...")
+    result = check_kali_connection()
+
+    if result.returncode != 0:
+        KALI_AVAILABLE = False
+        print("Kali unreachable.")
+        print(result.stderr)
+        
+    else:
+        KALI_AVAILABLE = True
+        print("Starting PowerDNS...")
+        start_powerdns()
+
+       # print("Stopping old Docker clients...")
+       # stop_dns_clients()
+
+        monitor_thread = threading.Thread(
+            target=start_powerdns_monitor,
+            daemon=True
+        )
+        monitor_thread.start()
+
 
     app.run(
         debug=True,

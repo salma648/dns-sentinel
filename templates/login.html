@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>DNS Sentinel Login</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="login-page">
+
+<div class="login-wrapper">
+
+    <div class="login-card">
+
+        <h1>DNS Sentinel</h1>
+        <p class="login-subtitle">
+            Admin access to DNS Security Platform
+        </p>
+
+        {% if error %}
+        <div class="login-error">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST">
+
+            <label>Username</label>
+            <input type="text"
+                   name="username"
+                   placeholder="Admin username"
+                   required>
+
+            <label>Password</label>
+            <input type="password"
+                   name="password"
+                   placeholder="Admin password"
+                   required>
+
+            <button class="login-btn" type="submit">
+                Login
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+</body>
+</html>

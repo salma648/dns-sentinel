@@ -30,6 +30,12 @@
             <li><a href="/blocklist">Blocklist</a></li>
             <li><a href="/reports">Reports</a></li>
             <li><a href="/settings">Settings</a></li>
+
+            <li>
+                <a href="{{ url_for('logout') }}" class="logout-link">
+                    Logout
+                </a>
+            </li>
         </ul>
 
     </aside>
@@ -125,84 +131,84 @@
 </div>
 
 <script>
-const severityLabels = [
-    {% for severity, count in severities %}
-        '{{ severity }}',
-    {% endfor %}
-];
+    const severityLabels = [
+        {% for severity, count in severities %}
+            '{{ severity }}',
+        {% endfor %}
+    ];
 
-const severityData = [
-    {% for severity, count in severities %}
-        {{ count }},
-    {% endfor %}
-];
+    const severityData = [
+        {% for severity, count in severities %}
+            {{ count }},
+        {% endfor %}
+    ];
 
-new Chart(
-    document.getElementById('severityChart'),
-    {
-        type: 'pie',
-        data: {
-            labels: severityLabels,
-            datasets: [{
-                data: severityData
-            }]
+    new Chart(
+        document.getElementById('severityChart'),
+        {
+            type: 'pie',
+            data: {
+                labels: severityLabels,
+                datasets: [{
+                    data: severityData
+                }]
+            }
         }
-    }
-);
+    );
 
-const ipLabels = [
-    {% for ip, count in top_ips %}
-        '{{ ip }}',
-    {% endfor %}
-];
+    const ipLabels = [
+        {% for ip, count in top_ips %}
+            '{{ ip }}',
+        {% endfor %}
+    ];
 
-const ipData = [
-    {% for ip, count in top_ips %}
-        {{ count }},
-    {% endfor %}
-];
+    const ipData = [
+        {% for ip, count in top_ips %}
+            {{ count }},
+        {% endfor %}
+    ];
 
-new Chart(
-    document.getElementById('ipChart'),
-    {
-        type: 'bar',
-        data: {
-            labels: ipLabels,
-            datasets: [{
-                label: 'Alerts',
-                data: ipData
-            }]
-        },
-        options: {
-            responsive: true
+    new Chart(
+        document.getElementById('ipChart'),
+        {
+            type: 'bar',
+            data: {
+                labels: ipLabels,
+                datasets: [{
+                    label: 'Alerts',
+                    data: ipData
+                }]
+            },
+            options: {
+                responsive: true
+            }
         }
-    }
-);
+    );
 
-const alertTypeLabels = [
-    {% for alert_type, count in stats.alert_types %}
-        '{{ alert_type }}',
-    {% endfor %}
-];
+    const alertTypeLabels = [
+        {% for alert_type, count in stats.alert_types %}
+            '{{ alert_type }}',
+        {% endfor %}
+    ];
 
-const alertTypeData = [
-    {% for alert_type, count in stats.alert_types %}
-        {{ count }},
-    {% endfor %}
-];
+    const alertTypeData = [
+        {% for alert_type, count in stats.alert_types %}
+            {{ count }},
+        {% endfor %}
+    ];
 
-new Chart(
-    document.getElementById('alertTypeChart'),
-    {
-        type: 'doughnut',
-        data: {
-            labels: alertTypeLabels,
-            datasets: [{
-                data: alertTypeData
-            }]
+    new Chart(
+        document.getElementById('alertTypeChart'),
+        {
+            type: 'doughnut',
+            data: {
+                labels: alertTypeLabels,
+                datasets: [{
+                    data: alertTypeData
+                }]
+            }
         }
-    }
-);
+    );
 </script>
 
 </body>
