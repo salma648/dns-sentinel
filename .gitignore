@@ -1,21 +1,40 @@
 # Python
-venv/
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Environment variables / secrets
+.env
+.env.*
 
 # Database
 *.db
+*.sqlite
+*.sqlite3
 dns_sentinel.db
 
-# Logs
-logs/
+# Runtime files
 *.log
-query.log
-powerdns.log
-
-# Generated files
-exports/
+*.status
 powerdns_monitor.status
 
-# VS Code
+# Generated blocklists
+blocked_ips.lua
+logs/blocked_ips.txt
+
+# Logs / generated data
+logs/
+exports/
+
+# IDE
 .vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
